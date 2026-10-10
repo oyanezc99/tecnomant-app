@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="texto_secundario">#757575</color>
+
+    <!-- Color de marca -->
+    <color name="color_principal">#2f5d8a</color>
+
+    <!-- Estado de la orden -->
+    <color name="estado_pendiente">#d9a400</color>
+    <color name="estado_en_proceso">#2f6fb0</color>
+    <color name="estado_completada">#2e8b57</color>
+
+    <!-- Resultado de un ítem del checklist -->
+    <color name="resultado_bien">#2e8b57</color>
+    <color name="resultado_regular">#d9a400</color>
+    <color name="resultado_malo">#b3261e</color>
+</resources>

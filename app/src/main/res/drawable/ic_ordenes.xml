@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono propio de la pestaña Órdenes: una lista de tres renglones. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,5h3v3h-3z M8,5h13v3h-13z M3,10.5h3v3h-3z M8,10.5h13v3h-13z M3,16h3v3h-3z M8,16h13v3h-13z" />
+</vector>

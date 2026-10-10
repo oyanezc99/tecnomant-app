@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figura del icono de la app: hoja de inspección con un visto bueno, dentro de la zona segura. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,30h32v48h-32z" />
+    <path
+        android:fillColor="#2f5d8a"
+        android:pathData="M43,37h22v4h-22z M43,46h22v4h-22z" />
+    <path
+        android:pathData="M44,63l7,7l13,-14"
+        android:strokeColor="#2e8b57"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4.5" />
+</vector>
