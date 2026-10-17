@@ -164,6 +164,24 @@ class InspeccionDao(context: Context) {
         }
     }
 
+    /** Marca una inspección local como sincronizada (sincronizada = 1). */
+    fun marcarSincronizada(idInspeccion: Long): Boolean {
+        return try {
+            val db = helper.writableDatabase
+            val valores = ContentValues().apply {
+                put("sincronizada", 1)
+            }
+            val filas = db.update(
+                "inspeccion", valores,
+                "id = ?", arrayOf(idInspeccion.toString())
+            )
+            filas > 0
+        } catch (e: SQLException) {
+            Log.e(TAG, "No se pudo marcar como sincronizada la inspección $idInspeccion", e)
+            false
+        }
+    }
+
     /** Inspecciones guardadas con los datos de su orden, la más reciente primero. */
     fun listarBorradores(): ResultadoDb<List<Borrador>> {
         return try {

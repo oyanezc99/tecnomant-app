@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 import pe.edu.cibertec.tecnomantApp.databinding.ActivityHomeBinding
 
 class HomeActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityHomeBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +41,6 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun replaceFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)

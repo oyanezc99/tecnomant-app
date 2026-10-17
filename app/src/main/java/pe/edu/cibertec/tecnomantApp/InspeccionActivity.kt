@@ -18,7 +18,6 @@ import pe.edu.cibertec.tecnomantApp.db.OrdenDao
  * editar un borrador: si la orden ya tiene inspección, se cargan sus datos.
  */
 class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
-
     private lateinit var binding: ActivityInspeccionBinding
     private lateinit var inspeccionDao: InspeccionDao
 
@@ -58,7 +57,6 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
             guardarInspeccion()
         }
     }
-
     /** Arma el formulario. Devuelve false (con su Toast) si no se puede inspeccionar la orden. */
     private fun cargarFormulario(savedInstanceState: Bundle?): Boolean {
         val resultadoOrden = OrdenDao(this).obtener(idOrden)
@@ -101,7 +99,6 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         binding.rvChecklist.adapter = ChecklistAdapter(items)
         return true
     }
-
     private fun guardarInspeccion() {
         if (!ReglasInspeccion.todosTienenResultado(items)) {
             mostrarMensaje("Marca Bien, Regular o Malo en todos los ítems")
@@ -113,7 +110,6 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
             mostrarMensaje("Escribe la observación del ítem en Malo: ${malosSinObservacion[0].nombreItem}")
             return
         }
-
         // Solo los ítems en Malo llevan observación.
         val itemsAGuardar = items.map { item ->
             val observacion = if (item.resultado == ReglasInspeccion.MALO) item.observacion.trim() else ""
@@ -136,7 +132,6 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         mostrarMensaje("Inspección guardada (estado general: $estadoGeneral)")
         volverALaLista()
     }
-
     /** Vuelve a la pantalla principal; la lista se recarga sola al mostrarse. */
     private fun volverALaLista() {
         val intent = Intent(this, HomeActivity::class.java)
@@ -144,14 +139,12 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         startActivity(intent)
         finish()
     }
-
     /** Al girar la pantalla se conserva lo que el técnico ya marcó y todavía no guardó. */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putStringArrayList(ESTADO_RESULTADOS, ArrayList(items.map { it.resultado }))
         outState.putStringArrayList(ESTADO_OBSERVACIONES, ArrayList(items.map { it.observacion }))
     }
-
     private fun restaurarItems(savedInstanceState: Bundle) {
         val resultados = savedInstanceState.getStringArrayList(ESTADO_RESULTADOS) ?: return
         val observaciones = savedInstanceState.getStringArrayList(ESTADO_OBSERVACIONES) ?: return
@@ -161,11 +154,9 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
             items[posicion].observacion = observaciones[posicion]
         }
     }
-
     private fun mostrarMensaje(mensaje: String) {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
     }
-
     companion object {
         const val EXTRA_ID_ORDEN = "idOrden"
         private const val ESTADO_RESULTADOS = "resultados"

@@ -16,7 +16,6 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class LoginActivity : AppCompatActivity(), View.OnClickListener {
-
     private lateinit var binding: ActivityLoginBinding
     private var request: Call<LoginResponse>? = null
 
@@ -44,7 +43,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         ViewCompat.requestApplyInsets(binding.root)
         binding.btnIngresar.setOnClickListener(this)
     }
-
     override fun onClick(v: View?) {
         if (v?.id == R.id.btnIngresar) {
             validarLogin()
@@ -60,7 +58,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         }
         iniciarSesion(usuario, clave)
     }
-
     private fun iniciarSesion(usuario: String, clave: String) {
         binding.btnIngresar.isEnabled = false
         binding.pbCarga.visibility = View.VISIBLE
@@ -81,7 +78,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             }
         })
     }
-
     private fun procesarRespuesta(response: Response<LoginResponse>) {
         if (response.code() == 401) {
             mostrarMensaje("Usuario o clave incorrectos")
@@ -104,29 +100,24 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         Sesion.guardar(this, idTecnico, datos.nombre ?: "")
         irAHome()
     }
-
     private fun finalizarCarga() {
         binding.btnIngresar.isEnabled = true
         binding.pbCarga.visibility = View.GONE
     }
-
     private fun mostrarMensaje(mensaje: String) {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
     }
-
     private fun irAHome() {
         val intent = Intent(this, HomeActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
     }
-
     override fun onDestroy() {
         request?.cancel()
         request = null
         super.onDestroy()
     }
-
     companion object {
         private const val ROL_TECNICO = "tecnico"
     }

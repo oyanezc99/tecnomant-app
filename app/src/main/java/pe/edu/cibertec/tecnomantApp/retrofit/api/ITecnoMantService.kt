@@ -1,5 +1,6 @@
 package pe.edu.cibertec.tecnomantApp.retrofit.api
 
+import pe.edu.cibertec.tecnomantApp.retrofit.request.InspeccionRequest
 import pe.edu.cibertec.tecnomantApp.retrofit.request.LoginRequest
 import pe.edu.cibertec.tecnomantApp.retrofit.response.LoginResponse
 import pe.edu.cibertec.tecnomantApp.retrofit.response.OrdenResponse
@@ -16,4 +17,7 @@ interface ITecnoMantService {
 
     @GET("api/ordenes/tecnico/{idTecnico}")
     fun obtenerOrdenes(@Path("idTecnico") idTecnico: Int): Call<List<OrdenResponse>>
+
+    @POST("inspecciones")
+    fun sincronizarInspeccion(@Body request: InspeccionRequest): Call<Void>
 }

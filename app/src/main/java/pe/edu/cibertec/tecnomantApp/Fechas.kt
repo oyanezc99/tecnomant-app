@@ -10,7 +10,6 @@ import java.util.Locale
  * Se guardan como llegan de la API (yyyy-MM-ddTHH:mm:ss) y se muestran como dd/MM/yyyy HH:mm.
  */
 object Fechas {
-
     private const val FORMATO_GUARDADO = "yyyy-MM-dd'T'HH:mm:ss"
     private const val FORMATO_PANTALLA = "dd/MM/yyyy HH:mm"
 
@@ -18,7 +17,6 @@ object Fechas {
     fun ahora(): String {
         return SimpleDateFormat(FORMATO_GUARDADO, Locale.US).format(Date())
     }
-
     /** Convierte una fecha guardada al formato de pantalla. Si no se puede leer, la devuelve tal cual. */
     fun mostrar(fechaGuardada: String): String {
         return try {

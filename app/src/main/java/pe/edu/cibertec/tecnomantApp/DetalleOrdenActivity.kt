@@ -13,7 +13,6 @@ import pe.edu.cibertec.tecnomantApp.db.InspeccionDao
 import pe.edu.cibertec.tecnomantApp.db.OrdenDao
 
 class DetalleOrdenActivity : AppCompatActivity(), View.OnClickListener {
-
     private lateinit var binding: ActivityDetalleOrdenBinding
     private var idOrden = -1
     private var orden: Orden? = null
@@ -70,7 +69,6 @@ class DetalleOrdenActivity : AppCompatActivity(), View.OnClickListener {
         binding.tvEstado.setBackgroundColor(OrdenAdapter.colorDeEstado(this, ordenLeida.estado))
         configurarBoton()
     }
-
     /** El botón principal depende de si la orden tiene inspección y de si ya se sincronizó. */
     private fun configurarBoton() {
         val resultado = InspeccionDao(this).obtenerPorOrden(idOrden)
@@ -91,7 +89,6 @@ class DetalleOrdenActivity : AppCompatActivity(), View.OnClickListener {
             binding.btnPrincipal.isEnabled = false
         }
     }
-
     private fun abrirInspeccion() {
         val ordenActual = orden ?: return
         if (Checklist.itemsPara(ordenActual.equipoTipo).isEmpty()) {
@@ -104,7 +101,6 @@ class DetalleOrdenActivity : AppCompatActivity(), View.OnClickListener {
         intent.putExtra(InspeccionActivity.EXTRA_ID_ORDEN, ordenActual.idOrden)
         startActivity(intent)
     }
-
     companion object {
         const val EXTRA_ID_ORDEN = "idOrden"
     }
