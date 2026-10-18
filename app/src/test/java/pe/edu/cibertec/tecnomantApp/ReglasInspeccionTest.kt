@@ -90,4 +90,42 @@ class ReglasInspeccionTest {
 
         assertEquals("Bien", ReglasInspeccion.calcularEstadoGeneral(items))
     }
+
+    @Test
+    fun maloSinFotos_faltaFoto() {
+        val items = listOf(
+            ItemInspeccion("Funcionamiento", "Bien"),
+            ItemInspeccion("Ruidos", "Malo", "Ruido fuerte")
+        )
+
+        assertTrue(ReglasInspeccion.faltaFoto(items, 0))
+    }
+
+    @Test
+    fun maloConUnaFoto_noFaltaFoto() {
+        val items = listOf(ItemInspeccion("Ruidos", "Malo", "Ruido fuerte"))
+
+        assertFalse(ReglasInspeccion.faltaFoto(items, 1))
+    }
+
+    @Test
+    fun sinItemsMalos_laFotoEsOpcional() {
+        val items = listOf(
+            ItemInspeccion("Funcionamiento", "Bien"),
+            ItemInspeccion("Ruidos", "Regular")
+        )
+
+        assertFalse(ReglasInspeccion.faltaFoto(items, 0))
+    }
+
+    @Test
+    fun variosMalosSinFotos_faltaFoto() {
+        val items = listOf(
+            ItemInspeccion("Ruidos", "Malo", "Ruido fuerte"),
+            ItemInspeccion("Puertas", "Malo", "No cierra")
+        )
+
+        assertTrue(ReglasInspeccion.faltaFoto(items, 0))
+    }
+
 }

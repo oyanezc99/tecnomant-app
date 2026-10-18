@@ -12,6 +12,8 @@ import pe.edu.cibertec.tecnomantApp.adapter.ChecklistAdapter
 import pe.edu.cibertec.tecnomantApp.databinding.ActivityInspeccionBinding
 import pe.edu.cibertec.tecnomantApp.db.InspeccionDao
 import pe.edu.cibertec.tecnomantApp.db.OrdenDao
+import android.app.Activity
+import androidx.activity.result.contract.ActivityResultContracts
 
 /**
  * Formulario de inspección. Sirve para registrar una inspección nueva y para
@@ -25,6 +27,31 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
     private var idOrden = -1
     private var idInspeccion: Long? = null
     private var items: List<ItemInspeccion> = emptyList()
+
+    // Por aqui guardamos de manera temporal las rutas de las fotos de esta inspeccion (solo en memoria)
+    private val rutasFotos = ArrayList<String>()
+
+    private val rutasEnBd = ArrayList<String>()
+    private var inspeccionGuardada = false
+
+    private val lanzadorEvidencia = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        if (resultado.resultCode == Activity.RESULT_OK) {
+            val rutas = resultado.data?.getStringArrayListExtra(EvidenciaActivity.EXTRA_RUTAS)
+            if (rutas != null) {
+                // En esta parte limpiamos las fotos eliminadas que no alcanzaron a guardarse en el SQLIte
+                for (anterior in rutasFotos) {
+                    if (!rutas.contains(anterior) && !rutasEnBd.contains(anterior)) {
+                        ArchivosEvidencia.borrar(anterior)
+                    }
+                }
+                rutasFotos.clear()
+                rutasFotos.addAll(rutas)
+                mostrarContadorFotos()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,13 +77,29 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
             finish()
             return
         }
+        if (savedInstanceState != null) {
+            rutasFotos.addAll(savedInstanceState.getStringArrayList(ESTADO_FOTOS) ?: arrayListOf())
+        }
+        mostrarContadorFotos()
         binding.btnGuardar.setOnClickListener(this)
+        binding.btnAgregarFotos.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
-        if (v?.id == R.id.btnGuardar) {
-            guardarInspeccion()
+        when (v?.id) {
+            R.id.btnGuardar -> guardarInspeccion()
+            R.id.btnAgregarFotos -> irAEvidencia()
         }
+    }
+
+    private fun irAEvidencia() {
+        val intent = Intent(this, EvidenciaActivity::class.java)
+        intent.putStringArrayListExtra(EvidenciaActivity.EXTRA_RUTAS, ArrayList(rutasFotos))
+        lanzadorEvidencia.launch(intent)
+    }
+
+    private fun mostrarContadorFotos() {
+        binding.tvFotos.text = "Fotos: ${rutasFotos.size}"
     }
 
     /** Arma el formulario. Devuelve false (con su Toast) si no se puede inspeccionar la orden. */
@@ -85,6 +128,17 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         }
 
         idInspeccion = guardada?.id
+
+        if (guardada != null) {
+            val resultadoFotos = inspeccionDao.listarEvidencias(guardada.id)
+            if (!resultadoFotos.ok) {
+                mostrarMensaje("No se pudieron leer las fotos guardadas")
+                return false
+            }
+            rutasEnBd.addAll(resultadoFotos.dato ?: emptyList())
+            if (savedInstanceState == null) rutasFotos.addAll(rutasEnBd)
+        }
+
         items = nombres.map { nombre ->
             val itemGuardado = guardada?.items?.firstOrNull { it.nombreItem == nombre }
             ItemInspeccion(nombre, itemGuardado?.resultado ?: "", itemGuardado?.observacion ?: "")
@@ -113,6 +167,11 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
             mostrarMensaje("Escribe la observación del ítem en Malo: ${malosSinObservacion[0].nombreItem}")
             return
         }
+        // RN- 01: Aqui se cumple que si hay un ítem en Malo, también te exigira al menos 1 foto de prueba
+        if (ReglasInspeccion.faltaFoto(items, rutasFotos.size)) {
+            mostrarMensaje("Agrega al menos una foto: hay ítems en Malo")
+            return
+        }
 
         // Solo los ítems en Malo llevan observación.
         val itemsAGuardar = items.map { item ->
@@ -125,14 +184,16 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
 
         val id = idInspeccion
         val guardado = if (id == null) {
-            inspeccionDao.insertar(idOrden, fechaHora, observaciones, estadoGeneral, itemsAGuardar)
+            inspeccionDao.insertar(idOrden, fechaHora, observaciones, estadoGeneral, itemsAGuardar, rutasFotos)
         } else {
-            inspeccionDao.actualizar(id, idOrden, fechaHora, observaciones, estadoGeneral, itemsAGuardar)
+            inspeccionDao.actualizar(id, idOrden, fechaHora, observaciones, estadoGeneral, itemsAGuardar, rutasFotos)
         }
         if (!guardado) {
             mostrarMensaje("No se pudo guardar la inspección")
             return
         }
+        // En esta parte se marca para que onDestroy no borre las fotos que ya quedaron en SQLite
+        inspeccionGuardada = true
         mostrarMensaje("Inspección guardada (estado general: $estadoGeneral)")
         volverALaLista()
     }
@@ -150,6 +211,16 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         super.onSaveInstanceState(outState)
         outState.putStringArrayList(ESTADO_RESULTADOS, ArrayList(items.map { it.resultado }))
         outState.putStringArrayList(ESTADO_OBSERVACIONES, ArrayList(items.map { it.observacion }))
+        outState.putStringArrayList(ESTADO_FOTOS, ArrayList(rutasFotos))
+    }
+
+    override fun onDestroy() {
+        if (isFinishing && !inspeccionGuardada) {
+            for (ruta in rutasFotos) {
+                if (!rutasEnBd.contains(ruta)) ArchivosEvidencia.borrar(ruta)
+            }
+        }
+        super.onDestroy()
     }
 
     private fun restaurarItems(savedInstanceState: Bundle) {
@@ -170,5 +241,6 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         const val EXTRA_ID_ORDEN = "idOrden"
         private const val ESTADO_RESULTADOS = "resultados"
         private const val ESTADO_OBSERVACIONES = "observaciones"
+        private const val ESTADO_FOTOS = "fotos"
     }
 }

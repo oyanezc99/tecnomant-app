@@ -24,6 +24,13 @@ object ReglasInspeccion {
         return items.filter { it.resultado == MALO && it.observacion.isBlank() }
     }
 
+    /**
+     * RN-01: Exige como minimo una foto si algun item esta en Malo (si no hay items en malo, la foto por las puras)
+     */
+    fun faltaFoto(items: List<ItemInspeccion>, cantidadFotos: Int): Boolean {
+        return items.any { it.resultado == MALO } && cantidadFotos == 0
+    }
+
     /** RN-08: Malo si algún ítem es Malo; si no, Regular si alguno es Regular; si no, Bien. */
     fun calcularEstadoGeneral(items: List<ItemInspeccion>): String {
         if (items.any { it.resultado == MALO }) return MALO

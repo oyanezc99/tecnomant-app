@@ -5,13 +5,14 @@ import android.content.Context
 import android.database.SQLException
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
+import pe.edu.cibertec.tecnomantApp.ArchivosEvidencia
 import pe.edu.cibertec.tecnomantApp.Borrador
 import pe.edu.cibertec.tecnomantApp.Inspeccion
 import pe.edu.cibertec.tecnomantApp.ItemInspeccion
 import pe.edu.cibertec.tecnomantApp.ReglasOrden
 
 /**
- * Acceso a las tablas locales `inspeccion` e `item`.
+ * Acceso a las tablas locales `inspeccion`, `item` y la nueva `evidencia`.
  * Todo cambio que toca varias filas va dentro de una transacción: o se guarda todo o nada.
  */
 class InspeccionDao(context: Context) {
@@ -24,7 +25,7 @@ class InspeccionDao(context: Context) {
             val db = helper.readableDatabase
             val cursor = db.rawQuery(
                 "SELECT id, idOrden, fechaHora, observaciones, estadoGeneral, sincronizada " +
-                    "FROM inspeccion WHERE idOrden = ?",
+                        "FROM inspeccion WHERE idOrden = ?",
                 arrayOf(idOrden.toString())
             )
             var inspeccion: Inspeccion? = null
@@ -49,8 +50,18 @@ class InspeccionDao(context: Context) {
         }
     }
 
+    /** Aqui se obtienen las rutas de las fotos guardadas para de una inspeccion especifica (mantiene el orden en que se registraron). */
+    fun listarEvidencias(idInspeccion: Long): ResultadoDb<List<String>> {
+        return try {
+            ResultadoDb(true, leerRutas(helper.readableDatabase, idInspeccion))
+        } catch (e: SQLException) {
+            Log.e(TAG, "No se pudieron leer las fotos de la inspección $idInspeccion", e)
+            ResultadoDb(false, null)
+        }
+    }
+
     /**
-     * REGISTRAR: inserta la inspección (sincronizada = 0) y una fila por ítem,
+     * REGISTRAR: inserta la inspección (sincronizada = 0), una fila por ítem y una por foto,
      * y pasa la orden a "En proceso" (RN-07).
      */
     fun insertar(
@@ -58,7 +69,8 @@ class InspeccionDao(context: Context) {
         fechaHora: String,
         observaciones: String,
         estadoGeneral: String,
-        items: List<ItemInspeccion>
+        items: List<ItemInspeccion>,
+        rutasFotos: List<String>
     ): Boolean {
         return try {
             val db = helper.writableDatabase
@@ -75,6 +87,7 @@ class InspeccionDao(context: Context) {
                 for (item in items) {
                     db.insertOrThrow("item", null, valoresDeItem(idInspeccion, item))
                 }
+                guardarEvidencias(db, idInspeccion, rutasFotos)
                 cambiarEstadoOrden(db, idOrden, ReglasOrden.EN_PROCESO)
 
                 db.setTransactionSuccessful()
@@ -89,7 +102,7 @@ class InspeccionDao(context: Context) {
     }
 
     /**
-     * MODIFICAR: actualiza la misma inspección y sus ítems; no crea otra.
+     * MODIFICAR: actualiza la misma inspección, sus ítems (y sus fotos tambien); no crea otra.
      * Solo se modifican los borradores (sincronizada = 0, RN-02).
      */
     fun actualizar(
@@ -98,11 +111,13 @@ class InspeccionDao(context: Context) {
         fechaHora: String,
         observaciones: String,
         estadoGeneral: String,
-        items: List<ItemInspeccion>
+        items: List<ItemInspeccion>,
+        rutasFotos: List<String>
     ): Boolean {
         return try {
             val db = helper.writableDatabase
             var actualizada = false
+            var fotosQuitadas: List<String> = emptyList()
             db.beginTransaction()
             try {
                 val valores = ContentValues()
@@ -117,6 +132,7 @@ class InspeccionDao(context: Context) {
                     for (item in items) {
                         actualizarItem(db, idInspeccion, item)
                     }
+                    fotosQuitadas = guardarEvidencias(db, idInspeccion, rutasFotos)
                     cambiarEstadoOrden(db, idOrden, ReglasOrden.EN_PROCESO)
                     db.setTransactionSuccessful()
                     actualizada = true
@@ -126,6 +142,10 @@ class InspeccionDao(context: Context) {
             } finally {
                 db.endTransaction()
             }
+            // Los archivos se borran solo después de confirmar los cambios en la base.
+            if (actualizada) {
+                for (ruta in fotosQuitadas) ArchivosEvidencia.borrar(ruta)
+            }
             actualizada
         } catch (e: SQLException) {
             Log.e(TAG, "No se pudo actualizar la inspección $idInspeccion", e)
@@ -134,28 +154,35 @@ class InspeccionDao(context: Context) {
     }
 
     /**
-     * BORRAR: elimina la inspección y sus ítems, y la orden vuelve a "Pendiente".
+     * BORRAR: elimina la inspección, sus ítems y sus fotos, y la orden vuelve a "Pendiente".
      * Solo se borran los borradores (sincronizada = 0, RN-02).
      */
     fun borrar(idInspeccion: Long, idOrden: Int): Boolean {
         return try {
             val db = helper.writableDatabase
             var borrada = false
+            var fotosABorrar: List<String> = emptyList()
             db.beginTransaction()
             try {
+                val rutas = leerRutas(db, idInspeccion)
                 val filas = db.delete(
                     "inspeccion", "id = ? AND sincronizada = 0", arrayOf(idInspeccion.toString())
                 )
                 if (filas == 1) {
                     db.delete("item", "idInspeccion = ?", arrayOf(idInspeccion.toString()))
+                    db.delete("evidencia", "idInspeccion = ?", arrayOf(idInspeccion.toString()))
                     cambiarEstadoOrden(db, idOrden, ReglasOrden.PENDIENTE)
                     db.setTransactionSuccessful()
                     borrada = true
+                    fotosABorrar = rutas
                 } else {
                     Log.e(TAG, "La inspección $idInspeccion no existe o ya está sincronizada")
                 }
             } finally {
                 db.endTransaction()
+            }
+            if (borrada) {
+                for (ruta in fotosABorrar) ArchivosEvidencia.borrar(ruta)
             }
             borrada
         } catch (e: SQLException) {
@@ -169,8 +196,8 @@ class InspeccionDao(context: Context) {
         return try {
             val cursor = helper.readableDatabase.rawQuery(
                 "SELECT i.id, i.idOrden, o.equipoCodigo, o.cliente, i.fechaHora, i.sincronizada " +
-                    "FROM inspeccion i LEFT JOIN orden o ON o.idOrden = i.idOrden " +
-                    "ORDER BY i.fechaHora DESC, i.id DESC",
+                        "FROM inspeccion i LEFT JOIN orden o ON o.idOrden = i.idOrden " +
+                        "ORDER BY i.fechaHora DESC, i.id DESC",
                 null
             )
             val lista = ArrayList<Borrador>()
@@ -213,6 +240,48 @@ class InspeccionDao(context: Context) {
             }
         }
         return items
+    }
+
+    private fun leerRutas(db: SQLiteDatabase, idInspeccion: Long): List<String> {
+        val rutas = ArrayList<String>()
+        val cursor = db.rawQuery(
+            "SELECT rutaFoto FROM evidencia WHERE idInspeccion = ? ORDER BY id",
+            arrayOf(idInspeccion.toString())
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                rutas.add(it.getString(0) ?: "")
+            }
+        }
+        return rutas
+    }
+
+    /**
+     * Aqui se sincronizan las evidencias en la base de datos con la lista recibida, elimina las fotos
+     * quitadas e inserta las nuevas fotos. despues retorna las rutas eliminadas para borrar sus archivos tras la transaccion
+     */
+    private fun guardarEvidencias(
+        db: SQLiteDatabase,
+        idInspeccion: Long,
+        rutas: List<String>
+    ): List<String> {
+        val guardadas = leerRutas(db, idInspeccion)
+        val quitadas = guardadas.filter { !rutas.contains(it) }
+        for (ruta in quitadas) {
+            db.delete(
+                "evidencia", "idInspeccion = ? AND rutaFoto = ?",
+                arrayOf(idInspeccion.toString(), ruta)
+            )
+        }
+        for (ruta in rutas) {
+            if (!guardadas.contains(ruta)) {
+                val valores = ContentValues()
+                valores.put("idInspeccion", idInspeccion)
+                valores.put("rutaFoto", ruta)
+                db.insertOrThrow("evidencia", null, valores)
+            }
+        }
+        return quitadas
     }
 
     /** Actualiza la fila del ítem; si no existía (checklist cambiado), la inserta. */
