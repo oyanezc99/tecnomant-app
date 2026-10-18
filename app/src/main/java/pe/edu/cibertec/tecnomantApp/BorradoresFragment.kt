@@ -12,16 +12,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import pe.edu.cibertec.tecnomantApp.adapter.BorradorAdapter
 import pe.edu.cibertec.tecnomantApp.databinding.FragmentBorradoresBinding
 import pe.edu.cibertec.tecnomantApp.db.InspeccionDao
+import pe.edu.cibertec.tecnomantApp.retrofit.ClienteTecnoMantRetrofit
+import pe.edu.cibertec.tecnomantApp.retrofit.request.InspeccionRequest
+import pe.edu.cibertec.tecnomantApp.retrofit.request.ItemInspeccionRequest
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
-/**
- * Inspecciones guardadas en el celular. Los pendientes se pueden editar y borrar.
- * El botón de sincronización está desactivado ("Próximamente"): es de la versión final.
- */
 class BorradoresFragment : Fragment() {
-
     private var _binding: FragmentBorradoresBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var inspeccionDao: InspeccionDao
 
     override fun onCreateView(
@@ -39,7 +39,6 @@ class BorradoresFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Se recarga al volver del formulario para reflejar lo editado o guardado.
         cargarBorradores()
     }
 
@@ -49,10 +48,12 @@ class BorradoresFragment : Fragment() {
             mostrarMensaje("No se pudieron leer los borradores guardados")
         }
         val lista = resultado.dato ?: emptyList()
+
         binding.rvBorradores.adapter = BorradorAdapter(
             lista,
             { borrador -> editarBorrador(borrador) },
-            { borrador -> confirmarBorrado(borrador) }
+            { borrador -> confirmarBorrado(borrador) },
+            { borrador -> sincronizarBorrador(borrador) } // Acción de sincronizar
         )
         binding.tvVacio.visibility = if (lista.isEmpty()) View.VISIBLE else View.GONE
     }
@@ -71,7 +72,6 @@ class BorradoresFragment : Fragment() {
             .show()
     }
 
-    /** Borra la inspección y sus ítems; la orden vuelve a Pendiente. */
     private fun borrarBorrador(borrador: Borrador) {
         if (_binding == null) return
         if (inspeccionDao.borrar(borrador.idInspeccion, borrador.idOrden)) {
@@ -80,6 +80,49 @@ class BorradoresFragment : Fragment() {
             mostrarMensaje("No se pudo borrar el borrador")
         }
         cargarBorradores()
+    }
+
+    private fun sincronizarBorrador(borrador: Borrador) {
+        val resultadoInspeccion = inspeccionDao.obtenerPorOrden(borrador.idOrden)
+        val inspeccion = resultadoInspeccion.dato
+
+        if (inspeccion == null) {
+            mostrarMensaje("No se encontró la información detallada de la inspección")
+            return
+        }
+
+        mostrarMensaje("Sincronizando...")
+
+        val requestItems = inspeccion.items.map {
+            ItemInspeccionRequest(it.nombreItem, it.resultado, it.observacion)
+        }
+        val body = InspeccionRequest(
+            idOrden = inspeccion.idOrden,
+            fechaHora = inspeccion.fechaHora,
+            observaciones = inspeccion.observaciones,
+            estadoGeneral = inspeccion.estadoGeneral,
+            items = requestItems
+        )
+
+        ClienteTecnoMantRetrofit.retrofitTecnoMantService.sincronizarInspeccion(body)
+            .enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (_binding == null) return
+                    if (response.isSuccessful) {
+                        // Marcar como sincronizada localmente en SQLite
+                        inspeccionDao.marcarSincronizada(inspeccion.id)
+                        mostrarMensaje("¡Inspección sincronizada con éxito!")
+                        cargarBorradores()
+                    } else {
+                        mostrarMensaje("Error en el servidor (HTTP ${response.code()}). Intente luego.")
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    if (_binding == null) return
+                    mostrarMensaje("Sin conexión a internet. Se intentará más tarde.")
+                }
+            })
     }
 
     private fun mostrarMensaje(mensaje: String) {

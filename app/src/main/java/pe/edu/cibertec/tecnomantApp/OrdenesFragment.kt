@@ -19,10 +19,8 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class OrdenesFragment : Fragment(), View.OnClickListener {
-
     private var _binding: FragmentOrdenesBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var ordenDao: OrdenDao
     private var request: Call<List<OrdenResponse>>? = null
 
@@ -32,7 +30,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
         _binding = FragmentOrdenesBinding.inflate(inflater, container, false)
         return binding.root
     }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         ordenDao = OrdenDao(requireContext())
@@ -45,20 +42,17 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
             if (_binding != null) cargarOrdenes()
         }
     }
-
     override fun onResume() {
         super.onResume()
         // Se recarga al volver del detalle o del formulario para reflejar los cambios.
         cargarOrdenes()
     }
-
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.btnActualizar -> actualizarOrdenes()
             R.id.btnCerrarSesion -> cerrarSesion()
         }
     }
-
     /** Lee la lista de SQLite (toda, o filtrada si hay texto en Buscar). Funciona sin internet. */
     private fun cargarOrdenes() {
         val texto = binding.etBuscar.text.toString().trim()
@@ -77,7 +71,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
         }
         binding.tvVacio.visibility = if (lista.isEmpty()) View.VISIBLE else View.GONE
     }
-
     private fun actualizarOrdenes() {
         val idTecnico = Sesion.idTecnico(requireContext())
         if (idTecnico <= 0) {
@@ -102,7 +95,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
                     mostrarError("No se pudieron actualizar las órdenes (HTTP ${response.code()}).")
                 }
             }
-
             override fun onFailure(call: Call<List<OrdenResponse>>, t: Throwable) {
                 if (_binding == null || call.isCanceled) return
                 finalizarCarga()
@@ -110,7 +102,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
             }
         })
     }
-
     /** Valida lo que llegó de la API y lo guarda en SQLite. */
     private fun guardarOrdenes(recibidas: List<OrdenResponse>) {
         val ordenes = ArrayList<Orden>()
@@ -129,7 +120,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
             mostrarError("No se pudieron guardar las órdenes en el celular")
         }
     }
-
     /** Devuelve null si a la orden le falta el id o el estado. */
     private fun convertirOrden(recibida: OrdenResponse): Orden? {
         val idOrden = recibida.idOrden ?: return null
@@ -146,23 +136,19 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
             estado = estado
         )
     }
-
     private fun finalizarCarga() {
         binding.btnActualizar.isEnabled = true
         binding.pbCarga.visibility = View.GONE
     }
-
     private fun mostrarError(mensaje: String) {
         binding.tvEstado.text = mensaje
         Toast.makeText(requireContext(), mensaje, Toast.LENGTH_SHORT).show()
     }
-
     private fun abrirDetalle(orden: Orden) {
         val intent = Intent(requireContext(), DetalleOrdenActivity::class.java)
         intent.putExtra(DetalleOrdenActivity.EXTRA_ID_ORDEN, orden.idOrden)
         startActivity(intent)
     }
-
     /** Borra solo la sesión y vuelve al login. Las órdenes y borradores de SQLite se conservan. */
     private fun cerrarSesion() {
         Sesion.borrar(requireContext())
@@ -171,7 +157,6 @@ class OrdenesFragment : Fragment(), View.OnClickListener {
         startActivity(intent)
         requireActivity().finish()
     }
-
     override fun onDestroyView() {
         request?.cancel()
         request = null

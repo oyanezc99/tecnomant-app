@@ -59,12 +59,12 @@
             app:layout_constraintTop_toBottomOf="@id/tvFecha"
             tools:text="Pendiente (borrador)" />
 
-        <!-- Editar y Borrar solo se muestran en los borradores pendientes. -->
+        <!-- Editar, Borrar y sincronizar solo se muestran en los borradores pendientes. -->
         <Button
             android:id="@+id/btnEditar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:layout_marginEnd="8dp"
             android:text="Editar"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -73,11 +73,22 @@
             app:layout_constraintTop_toBottomOf="@id/tvEstado" />
 
         <Button
+            android:id="@+id/btnSincronizar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Sincronizar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btnEditar" />
+
+        <Button
             android:id="@+id/btnBorrar"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:text="Borrar"
             android:textColor="@color/resultado_malo"
             app:layout_constraintBottom_toBottomOf="parent"

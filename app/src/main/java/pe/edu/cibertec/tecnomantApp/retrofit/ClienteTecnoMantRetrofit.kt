@@ -14,7 +14,7 @@ object ClienteTecnoMantRetrofit {
      * Para un celular real se cambia por la IP de la computadora en la red local
      * (por ejemplo "http://192.168.1.50:5080/"), con la API escuchando en 0.0.0.0:5080.
      */
-    private const val URL_BASE = "http://10.0.2.2:5080/"
+    private const val URL_BASE = "http://localhost:5080/"
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(1, TimeUnit.MINUTES)
