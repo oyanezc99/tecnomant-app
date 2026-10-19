@@ -195,20 +195,21 @@ class InspeccionDao(context: Context) {
     fun marcarSincronizada(idInspeccion: Long): Boolean {
         return try {
             val db = helper.writableDatabase
-            val valores = ContentValues().apply {
-                put("sincronizada", 1)
-            }
-            val filas = db.update(
-                "inspeccion", valores,
-                "id = ?", arrayOf(idInspeccion.toString())
-            )
-            filas > 0
+            db.beginTransaction()
+            try {
+                val valores = ContentValues().apply { put("sincronizada", 1) }
+                val filas = db.update("inspeccion", valores, "id = ?", arrayOf(idInspeccion.toString()))
+                if (filas > 0) {
+                    db.execSQL("UPDATE orden SET estado = 'Completada' WHERE idOrden = (SELECT idOrden FROM inspeccion WHERE id = ?)", arrayOf(idInspeccion))
+                    db.setTransactionSuccessful()
+                }
+                filas > 0
+            } finally { db.endTransaction() }
         } catch (e: SQLException) {
-            Log.e(TAG, "No se pudo marcar como sincronizada la inspección $idInspeccion", e)
+            Log.e(TAG, "No se pudo confirmar la inspección sincronizada", e)
             false
         }
     }
-
     /** Inspecciones guardadas con los datos de su orden, la más reciente primero. */
     fun listarBorradores(): ResultadoDb<List<Borrador>> {
         return try {

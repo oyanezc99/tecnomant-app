@@ -3,13 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
         usesCleartextTraffic="true" es SOLO PARA DESARROLLO: la API local de TecnoMant
         responde por HTTP (http://10.0.2.2:5080/). En una versión publicada la API debe
         usar HTTPS y este atributo se quita.
     -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
+        android:name=".TecnoMantApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,6 +23,7 @@
         android:theme="@style/Theme.TecnomantApp"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <service android:name=".SincronizacionJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
 
         <activity
             android:name=".HomeActivity"

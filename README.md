@@ -2,7 +2,7 @@
 
 App Android para el técnico de campo de TecnoMant. Permite iniciar sesión, ver las órdenes de trabajo aunque no haya internet, registrar la inspección de un equipo con un checklist y guardar ese trabajo en el celular como borrador que se puede editar o borrar.
 
-Versión 0 (avance). Proyecto de estudiante: Kotlin, vistas XML con ViewBinding, Material 3, SQLite con `SQLiteOpenHelper` y Retrofit con `enqueue` y `Callback`.
+Rama de integración local. Proyecto de estudiante: Kotlin, vistas XML con ViewBinding, Material 3, SQLite con `SQLiteOpenHelper` y Retrofit con `enqueue` y `Callback`.
 
 ## Qué incluye
 
@@ -14,8 +14,8 @@ Versión 0 (avance). Proyecto de estudiante: Kotlin, vistas XML con ViewBinding,
 | Detalle de la orden | Incluido |
 | Formulario de inspección con checklist, guardado en SQLite | Incluido |
 | Borradores: listar, editar y borrar | Incluido |
-| Fotos de evidencia | Pendiente (la tabla `evidencia` ya está creada, sin uso) |
-| Sincronización con el servidor | Pendiente (el botón dice "Próximamente" y está desactivado) |
+| Fotos de evidencia | Cámara, galería, almacenamiento privado y envío Base64 |
+| Sincronización con el servidor | Cola FIFO, botón manual y JobScheduler con red/reintento |
 
 ## Requisitos
 
@@ -146,7 +146,7 @@ Base de datos local `tecnomant.db` con las tablas `orden`, `inspeccion`, `item` 
 ## Seguridad
 
 - No hay usuarios ni claves escritos en el código. El usuario y la clave se escriben en la pantalla de login y se validan contra la API.
-- La clave no se guarda en el celular. En `SharedPreferences` solo quedan `idTecnico` y `nombre`.
+- La clave no se guarda en el celular. En SharedPreferences quedan idTecnico, nombre y token de sesión; se requiere volver a iniciar sesión cuando caduque o reinicie la API.
 - **Cerrar sesión** borra solo la sesión. Las órdenes y los borradores se conservan, así que un celular lo usa un solo técnico.
 
 ## Problemas comunes
@@ -157,3 +157,13 @@ Base de datos local `tecnomant.db` con las tablas `orden`, `inspeccion`, `item` 
 | Error de versión de Java al compilar desde la terminal | Definir `JAVA_HOME` con el JDK de Android Studio |
 | El login muestra "Sin conexión" en el emulador | Encender la API en el puerto 5080 |
 | El login muestra "Sin conexión" en un celular real | Cambiar `URL_BASE` por la IP de la computadora y comprobar que la API escucha en `0.0.0.0` |
+
+## Integración local verificada
+
+La app usa la API de feature/mantenimientos-equipos-tecnicos-ordenes y envía POST /api/inspecciones con fechaHoraReal, items y evidencias. La URL para el emulador es http://10.0.2.2:5080/. La API debe estar en esta misma computadora; para un teléfono físico hay que configurar su dirección de red y HTTPS según el entorno.
+
+Al guardar una inspección, JobScheduler programa la cola cuando hay red y reintenta con espera creciente. Los pendientes se envían por fecha e ID ascendente. Un error conserva la inspección y las fotos; no se continúa con registros posteriores. Al confirmar el servidor se marca sincronizada y la orden local Completada en una transacción.
+
+El técnico puede sincronizar manualmente desde Borradores. La API impide cerrar órdenes de otros técnicos. Una respuesta perdida se puede reenviar sin duplicar una inspección idéntica.
+
+Prueba optativa en emulador: IntegracionLocalTest requiere un usuario de integración y dos órdenes Pendiente asignadas a él. Pasar los argumentos usuario y clave a AndroidJUnitRunner. Utiliza una imagen generada para probar SQLite, envío, FIFO, reintento, solo lectura y resultado en la API; no sustituye la comprobación de cámara en teléfono físico.

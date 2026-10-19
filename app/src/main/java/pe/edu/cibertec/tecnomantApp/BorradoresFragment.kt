@@ -83,46 +83,13 @@ class BorradoresFragment : Fragment() {
     }
 
     private fun sincronizarBorrador(borrador: Borrador) {
-        val resultadoInspeccion = inspeccionDao.obtenerPorOrden(borrador.idOrden)
-        val inspeccion = resultadoInspeccion.dato
-
-        if (inspeccion == null) {
-            mostrarMensaje("No se encontró la información detallada de la inspección")
-            return
+        mostrarMensaje("Sincronizando pendientes del más antiguo al más reciente...")
+        Sincronizador.ejecutar(requireContext()) { ok,mensaje ->
+            activity?.runOnUiThread {
+                if(_binding!=null) { mostrarMensaje(mensaje); cargarBorradores() }
+            }
+            if(!ok) Sincronizador.programar(TecnoMantApplication.instancia)
         }
-
-        mostrarMensaje("Sincronizando...")
-
-        val requestItems = inspeccion.items.map {
-            ItemInspeccionRequest(it.nombreItem, it.resultado, it.observacion)
-        }
-        val body = InspeccionRequest(
-            idOrden = inspeccion.idOrden,
-            fechaHora = inspeccion.fechaHora,
-            observaciones = inspeccion.observaciones,
-            estadoGeneral = inspeccion.estadoGeneral,
-            items = requestItems
-        )
-
-        ClienteTecnoMantRetrofit.retrofitTecnoMantService.sincronizarInspeccion(body)
-            .enqueue(object : Callback<Void> {
-                override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                    if (_binding == null) return
-                    if (response.isSuccessful) {
-                        // Marcar como sincronizada localmente en SQLite
-                        inspeccionDao.marcarSincronizada(inspeccion.id)
-                        mostrarMensaje("¡Inspección sincronizada con éxito!")
-                        cargarBorradores()
-                    } else {
-                        mostrarMensaje("Error en el servidor (HTTP ${response.code()}). Intente luego.")
-                    }
-                }
-
-                override fun onFailure(call: Call<Void>, t: Throwable) {
-                    if (_binding == null) return
-                    mostrarMensaje("Sin conexión a internet. Se intentará más tarde.")
-                }
-            })
     }
 
     private fun mostrarMensaje(mensaje: String) {

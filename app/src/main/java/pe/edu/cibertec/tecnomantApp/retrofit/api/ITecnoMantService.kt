@@ -18,6 +18,6 @@ interface ITecnoMantService {
     @GET("api/ordenes/tecnico/{idTecnico}")
     fun obtenerOrdenes(@Path("idTecnico") idTecnico: Int): Call<List<OrdenResponse>>
 
-    @POST("inspecciones")
+    @POST("api/inspecciones")
     fun sincronizarInspeccion(@Body request: InspeccionRequest): Call<Void>
 }

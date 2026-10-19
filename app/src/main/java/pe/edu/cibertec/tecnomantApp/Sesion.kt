@@ -13,8 +13,9 @@ object Sesion {
     private const val CLAVE_NOMBRE = "nombre"
     private const val SIN_SESION = -1
 
-    fun guardar(context: Context, idTecnico: Int, nombre: String) {
+    fun guardar(context: Context, idTecnico: Int, nombre: String, token: String = "") {
         context.getSharedPreferences(ARCHIVO, Context.MODE_PRIVATE).edit()
+            .putString("token", token)
             .putInt(CLAVE_ID_TECNICO, idTecnico)
             .putString(CLAVE_NOMBRE, nombre)
             .apply()
@@ -30,6 +31,8 @@ object Sesion {
             .getInt(CLAVE_ID_TECNICO, SIN_SESION)
     }
 
+    fun token(context: Context): String = context.getSharedPreferences(ARCHIVO, Context.MODE_PRIVATE).getString("token", "") ?: ""
+
     fun nombre(context: Context): String {
         return context.getSharedPreferences(ARCHIVO, Context.MODE_PRIVATE)
             .getString(CLAVE_NOMBRE, "") ?: ""
@@ -38,6 +41,7 @@ object Sesion {
     /** Cerrar sesión: borra solo la sesión. Los datos de SQLite se conservan. */
     fun borrar(context: Context) {
         context.getSharedPreferences(ARCHIVO, Context.MODE_PRIVATE).edit()
+            .remove("token")
             .remove(CLAVE_ID_TECNICO)
             .remove(CLAVE_NOMBRE)
             .apply()

@@ -97,7 +97,8 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             mostrarMensaje("No se pudo iniciar sesión: la respuesta no trae el técnico.")
             return
         }
-        Sesion.guardar(this, idTecnico, datos.nombre ?: "")
+        Sesion.guardar(this, idTecnico, datos.nombre ?: "", datos.token ?: "")
+        Sincronizador.programar(this)
         irAHome()
     }
     private fun finalizarCarga() {

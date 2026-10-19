@@ -194,6 +194,7 @@ class InspeccionActivity : AppCompatActivity(), View.OnClickListener {
         }
         // En esta parte se marca para que onDestroy no borre las fotos que ya quedaron en SQLite
         inspeccionGuardada = true
+        Sincronizador.programar(this)
         mostrarMensaje("Inspección guardada (estado general: $estadoGeneral)")
         volverALaLista()
     }
